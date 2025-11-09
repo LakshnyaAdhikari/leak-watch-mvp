@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Fake Exfil Demo",
+  "version": "1.0",
+  "description": "Simulates a malicious extension sending copied text to a server",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

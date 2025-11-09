@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>LeakWatch Dashboard</title>
+<style>
+body{font-family:sans-serif;background:#eef2f7;margin:20px;}
+.card{background:white;padding:14px;margin-bottom:14px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.12);}
+button{padding:6px 12px;margin-right:6px;border-radius:6px;border:1px solid #444;cursor:pointer;}
+button.primary{background:#2563eb;color:white;border:none;}
+#alerts{margin-bottom:20px;}
+</style>
+</head>
+<body>
+<h1>LeakWatch Dashboard</h1>
+<div id="alerts"></div>
+<h3>Activity Log</h3>
+<div id="log"></div>
+
+<script>
+const ws = new WebSocket("ws://127.0.0.1:8080/ws");
+
+function log(msg){
+  const d=document.createElement("div");
+  d.className="card";
+  d.textContent=msg;
+  document.getElementById("log").prepend(d);
+}
+
+function showAlert(data){
+  const host = data.event.host || "unknown";
+  const div=document.createElement("div");
+  div.className="card";
+  div.innerHTML=`<strong>⚠ Data Leak Detected</strong><br>Destination: <b>${host}</b><br><br>`;
+  const block=document.createElement("button");
+  block.className="primary";
+  block.textContent="BLOCK DOMAIN";
+  block.onclick=()=>{
+    fetch("/action",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"block-domain",domain:host.split(":")[0]})}).then(()=>{
+      log("Blocked "+host);
+      div.remove();
+    });
+  };
+  const allow=document.createElement("button");
+  allow.textContent="Allow";
+  allow.onclick=()=>div.remove();
+  div.appendChild(block);
+  div.appendChild(allow);
+  document.getElementById("alerts").prepend(div);
+}
+
+ws.onmessage=(e)=>{
+  let msg;try{msg=JSON.parse(e.data);}catch{return;}
+  if(msg.type==="proxy-event" && msg.correlated){
+    showAlert(msg);
+  }
+  log(e.data);
+};
+</script>
+</body>
+</html>
