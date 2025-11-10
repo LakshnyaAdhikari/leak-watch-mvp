@@ -1,61 +1,166 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-<meta charset="utf-8" />
-<title>LeakWatch Dashboard</title>
-<style>
-body{font-family:sans-serif;background:#eef2f7;margin:20px;}
-.card{background:white;padding:14px;margin-bottom:14px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.12);}
-button{padding:6px 12px;margin-right:6px;border-radius:6px;border:1px solid #444;cursor:pointer;}
-button.primary{background:#2563eb;color:white;border:none;}
-#alerts{margin-bottom:20px;}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LeakWatch — Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-<h1>LeakWatch Dashboard</h1>
-<div id="alerts"></div>
-<h3>Activity Log</h3>
-<div id="log"></div>
+  <header class="header">
+    <div class="logo">
+      <div class="dot" aria-hidden="true"></div>
+      <div class="brand">
+        <div class="name">LeakWatch</div>
+        <div class="sub">Realtime Data Leak Detection — Local-first</div>
+      </div>
+    </div>
+    <div class="header-right">
+  <div class="status">Status: <span id="connStatus">Connecting...</span></div>
 
-<script>
-const ws = new WebSocket("ws://127.0.0.1:8080/ws");
+  <!-- Interactive User Profile Dropdown -->
+  <div class="profile" id="profileDropdown">
+    <div class="profile-btn">
+      <img src="https://i.imgur.com/4Z1Zt5W.png" alt="User Avatar" class="avatar" />
+      <div class="profile-info">
+        <div class="profile-name">Alex Patel</div>
+        <div class="profile-score">Security Score: <b id="securityScore">87</b>/100</div>
+      </div>
+      <span class="caret">▾</span>
+    </div>
 
-function log(msg){
-  const d=document.createElement("div");
-  d.className="card";
-  d.textContent=msg;
-  document.getElementById("log").prepend(d);
-}
+    <div class="dropdown-menu" id="dropdownMenu">
+      <div class="dropdown-header">
+        <strong>Alex Patel</strong><br>
+        <small>alex.patel@leakwatch.ai</small>
+      </div>
+      <div class="dropdown-score-bar">
+        <div id="scoreBarFill"></div>
+      </div>
+      <hr>
+      <button class="dropdown-item" onclick="openMyAccount()">👤 My Account</button>
+      <button class="dropdown-item" onclick="openSecuritySettings()">🔐 Security Settings</button>
+      <button class="dropdown-item" onclick="openIncidentReports()">📁 Incident Reports</button>
+      <button class="dropdown-item" onclick="downloadReport()">📄 Generate Report</button>
+      <button class="dropdown-item" onclick="openNotifications()">🔔 Notifications</button>
+      <button class="dropdown-item" onclick="openHelp()">❓ Help / Docs</button>
+      <button class="dropdown-item" onclick="openAbout()">ℹ️ About LeakWatch</button>
+      <hr>
+      <button class="dropdown-item logout" onclick="logout()">🚪 Log Out</button>
+    </div>
+  </div>
+</div>
 
-function showAlert(data){
-  const host = data.event.host || "unknown";
-  const div=document.createElement("div");
-  div.className="card";
-  div.innerHTML=`<strong>⚠ Data Leak Detected</strong><br>Destination: <b>${host}</b><br><br>`;
-  const block=document.createElement("button");
-  block.className="primary";
-  block.textContent="BLOCK DOMAIN";
-  block.onclick=()=>{
-    fetch("/action",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"block-domain",domain:host.split(":")[0]})}).then(()=>{
-      log("Blocked "+host);
-      div.remove();
-    });
-  };
-  const allow=document.createElement("button");
-  allow.textContent="Allow";
-  allow.onclick=()=>div.remove();
-  div.appendChild(block);
-  div.appendChild(allow);
-  document.getElementById("alerts").prepend(div);
-}
+  </header>
 
-ws.onmessage=(e)=>{
-  let msg;try{msg=JSON.parse(e.data);}catch{return;}
-  if(msg.type==="proxy-event" && msg.correlated){
-    showAlert(msg);
-  }
-  log(e.data);
-};
-</script>
+  <main class="container">
+    <!-- LEFT -->
+    <aside class="left panel">
+      <div class="section">
+        <h4>Quick Stats</h4>
+        <div class="stat-grid">
+          <div class="stat">
+            <div class="big" id="statTotal">0</div>
+            <div class="small">Total Incidents</div>
+          </div>
+          <div class="stat">
+            <div class="big" id="statBlocked">0</div>
+            <div class="small">Blocked</div>
+          </div>
+          <div class="stat">
+            <div class="big" id="statAllowed">0</div>
+            <div class="small">Allowed</div>
+          </div>
+          <div class="stat">
+            <div class="big" id="statActive">0</div>
+            <div class="small">Active Alerts</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h4>Blocklist</h4>
+        <div class="block-input">
+          <input id="wlInput" placeholder="domain to block (example.com)" />
+          <button id="addBlock" class="btn">Add</button>
+        </div>
+        <div id="blockedList" class="list"></div>
+      </div>
+
+      <div class="section">
+        <h4>Risk Distribution</h4>
+        <canvas id="riskDonut" width="280" height="150"></canvas>
+        <div class="muted small">High / Medium / Low</div>
+      </div>
+    </aside>
+
+    <!-- CENTER -->
+    <section class="center">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h3>Live Alerts</h3>
+            <div class="muted">Correlated clipboard → outbound events</div>
+          </div>
+
+          <div class="controls">
+            <input id="globalSearch" placeholder="Search domain / page / extension id" />
+            <div class="filter-pill" id="filterAll">All</div>
+          </div>
+        </div>
+
+        <div class="filters">
+          <button class="pill" data-filter="all" onclick="setFilter('all')">All</button>
+          <button class="pill" data-filter="high" onclick="setFilter('high')">High</button>
+          <button class="pill" data-filter="med" onclick="setFilter('med')">Medium</button>
+          <button class="pill" data-filter="low" onclick="setFilter('low')">Low</button>
+        </div>
+
+        <div id="alerts" class="alerts-area" aria-live="polite"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div><h3>Activity Log</h3><div class="muted">Recent events (click a line for details)</div></div>
+        </div>
+        <div id="log" class="log" role="log"></div>
+      </div>
+    </section>
+
+    <!-- RIGHT -->
+    <aside class="right panel">
+      <div class="section">
+        <h4>Weekly Trend</h4>
+        <canvas id="weeklyChart" width="320" height="140"></canvas>
+        <div class="muted small">Last 7 days</div>
+      </div>
+
+      <div class="section">
+        <h4>Recent Block Attempts</h4>
+        <div id="blockedAttempts" class="list"></div>
+      </div>
+
+      <div class="section">
+        <h4>Top Destinations</h4>
+        <div id="topDest" class="list"></div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Modal -->
+  <div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal">
+      <h3 id="modalTitle">Alert details</h3>
+      <div id="modalBody" class="modal-body"></div>
+      <div class="modal-actions">
+        <button class="btn ghost" onclick="closeModal()">Close</button>
+        <button id="modalAllow" class="btn">Allow</button>
+        <button id="modalBlock" class="btn warn">Block Domain</button>
+        <button id="modalBlockExt" class="btn" onclick="modalBlockExtension()">Block Extension</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
