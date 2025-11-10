@@ -1,12 +1,9 @@
 // app.js - LeakWatch Dashboard logic (connects to ws://127.0.0.1:8080/ws)
-// Assumes server endpoints:
-//  - WebSocket: ws://127.0.0.1:8080/ws
-//  - Action API: POST http://127.0.0.1:8080/action
-//  - /extension-event and /proxy-log are on server side (proxy-server)
 
 (() => {
   const WS_URL = 'ws://127.0.0.1:8080/ws';
   const ACTION_URL = 'http://127.0.0.1:8080/action';
+  let socket; // ✅ defined early to avoid reference errors
 
   const state = {
     alerts: [],
@@ -18,6 +15,7 @@
     counts: { total: 0, blocked: 0, allowed: 0 },
   };
 
+  // DOM elements
   const connStatusEl = document.getElementById('connStatus');
   const alertsEl = document.getElementById('alerts');
   const logEl = document.getElementById('log');
@@ -33,8 +31,8 @@
   const riskDonut = document.getElementById('riskDonut');
   const riskCtx = riskDonut.getContext('2d');
 
+  // ====== INIT ======
   init();
-
   function init() {
     renderBlockedList();
     connectWS();
@@ -44,27 +42,26 @@
     updateStats();
   }
 
-  let socket;
+  // ====== WEBSOCKET ======
   function connectWS() {
     socket = new WebSocket(WS_URL);
     socket.onopen = () => {
       connStatusEl.textContent = 'Connected';
-      addLog('WebSocket connected');
+      addLog('✅ Connected to backend WebSocket');
+      console.log('WebSocket connected');
     };
     socket.onclose = () => {
       connStatusEl.textContent = 'Disconnected';
-      addLog('WebSocket disconnected');
+      console.warn('WebSocket closed');
     };
     socket.onerror = (e) => {
       connStatusEl.textContent = 'Error';
-      addLog('WebSocket error');
-      console.error(e);
+      console.error('WebSocket error:', e);
     };
-    socket.onmessage = (ev) => {
-      handleMessage(ev.data);
-    };
+    socket.onmessage = (ev) => handleMessage(ev.data);
   }
 
+  // ====== HANDLE INCOMING EVENTS ======
   function handleMessage(raw) {
     let msg;
     try {
@@ -73,15 +70,26 @@
       addLog('Malformed message: ' + raw);
       return;
     }
+
     addLog(JSON.stringify(msg));
+
     if (msg.type === 'extension-event') {
       pushLog({ type: 'extension-event', evt: msg.evt || msg });
     } else if (msg.type === 'proxy-event') {
-      pushLog({ type: 'proxy-event', pEvent: msg.pEvent, correlation: msg.correlation });
-      if (msg.correlation) {
-        createAlert(msg);
+      // 💡 Auto-detect backend message structure
+      const pEvent = msg.pEvent || msg.event || {};
+      const correlation =
+        msg.correlation ||
+        (msg.correlated
+          ? { confidence: 0.9, clipboard: { page: pEvent.page || 'unknown' } }
+          : null);
+
+      pushLog({ type: 'proxy-event', pEvent, correlation });
+
+      if (correlation) {
+        createAlert({ pEvent, correlation });
         incrementCountForToday();
-        updateTopDest(msg.pEvent && msg.pEvent.host);
+        updateTopDest(pEvent && pEvent.host);
         drawWeeklyChart();
         drawRiskDonut();
       }
@@ -96,6 +104,7 @@
     updateStats();
   }
 
+  // ====== LOGGING ======
   function addLog(msg) {
     const t = new Date().toLocaleTimeString();
     const div = document.createElement('div');
@@ -125,9 +134,10 @@
     }
   }
 
+  // ====== ALERT CARDS ======
   function createAlert(evtMsg) {
-    const corr = evtMsg.correlation;
-    const pEvent = evtMsg.pEvent || evtMsg.proxy;
+    const corr = evtMsg.correlation || null;
+    const pEvent = evtMsg.pEvent || evtMsg.event || evtMsg.proxy;
     const alert = {
       id: 'a_' + Math.random().toString(36).slice(2, 9),
       ts: Date.now(),
@@ -181,13 +191,13 @@
             <button class="btn primary" onclick="openDetails('${a.id}')">Details</button>
             <button class="btn ghost" onclick="markAllowed('${a.id}')">Allow</button>
           </div>
-        </div>
-      `;
+        </div>`;
       alertsEl.appendChild(card);
     });
     statActive.textContent = state.alerts.filter((a) => a.status === 'active').length;
   }
 
+  // ====== ACTIONS ======
   function onBlockDomain(alertId) {
     const a = state.alerts.find((x) => x.id === alertId);
     if (!a) return;
@@ -230,6 +240,7 @@
     updateStats();
   }
 
+  // ====== MODAL ======
   function openDetails(alertId) {
     const a = state.alerts.find((x) => x.id === alertId);
     if (!a) return openModalFromLog({ msg: 'not found' });
@@ -240,9 +251,7 @@
     const modal = document.getElementById('modalBackdrop');
     const body = document.getElementById('modalBody');
     document.getElementById('modalTitle').textContent = 'Event details';
-    body.innerHTML = `<pre style="white-space:pre-wrap">${escapeHtml(
-      JSON.stringify(logEntry, null, 2)
-    )}</pre>`;
+    body.innerHTML = `<pre style="white-space:pre-wrap">${escapeHtml(JSON.stringify(logEntry, null, 2))}</pre>`;
     modal.style.display = 'flex';
   }
 
@@ -255,10 +264,7 @@
       <div><strong>Page</strong>: ${escapeHtml(a.correlation?.clipboard?.page || 'unknown')}</div>
       <div><strong>Confidence</strong>: ${Math.round((a.correlation?.confidence || 0) * 100)}%</div>
       <div style="margin-top:8px"><strong>Body preview</strong>:</div>
-      <pre style="white-space:pre-wrap;background:rgba(255,255,255,0.02);padding:8px;border-radius:6px;color:#bfcbd9">${escapeHtml(
-        a.pEvent?.bodyPreview || ''
-      )}</pre>
-    `;
+      <pre style="white-space:pre-wrap;background:rgba(255,255,255,0.02);padding:8px;border-radius:6px;color:#bfcbd9">${escapeHtml(a.pEvent?.bodyPreview || '')}</pre>`;
     document.getElementById('modalBlock').onclick = () => {
       onBlockDomain(a.id);
       closeModal();
@@ -278,6 +284,7 @@
     document.getElementById('modalBackdrop').style.display = 'none';
   }
 
+  // ====== HELPERS ======
   function performAction(action, domain, extensionId) {
     const body = { action };
     if (domain) body.domain = domain;
@@ -302,9 +309,7 @@
     arr.forEach((d) => {
       const el = document.createElement('div');
       el.className = 'list-item';
-      el.innerHTML = `<div class="muted">${escapeHtml(
-        d
-      )}</div><div><button class="btn" onclick="unblockDomain('${d}')">Unblock</button></div>`;
+      el.innerHTML = `<div class="muted">${escapeHtml(d)}</div><div><button class="btn" onclick="unblockDomain('${d}')">Unblock</button></div>`;
       blockedListEl.appendChild(el);
     });
   }
@@ -470,10 +475,12 @@
       String(d.getDate()).padStart(2, '0')
     );
   }
+
   function shortWeekLabel(iso) {
     const d = new Date(iso);
     return d.toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 3);
   }
+
   function escapeHtml(s) {
     if (!s) return '';
     return String(s)
