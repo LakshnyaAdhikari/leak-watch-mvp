@@ -82,9 +82,29 @@ html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,'Helv
 }
 
 /* === Enhanced Profile Dropdown === */
-.profile {
-  position: relative;
+/* ---- HEADER FIX ---- */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 26px;
+  position: relative;              /* allow dropdown to position correctly */
+  z-index: 1000;
 }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  z-index: 1001;                   /* ensures profile menu is on top */
+}
+
+/* ---- PROFILE BUTTON ---- */
+.profile {
+  position: relative;              /* anchor point for dropdown */
+}
+
 .profile-btn {
   display: flex;
   align-items: center;
@@ -95,24 +115,25 @@ html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,'Helv
   cursor: pointer;
   transition: background 0.2s ease;
 }
-.profile-btn:hover { background: rgba(255,255,255,0.1); }
+.profile-btn:hover {
+  background: rgba(255,255,255,0.1);
+}
 
 .avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.1);
+  border: 2px solid rgba(255,255,255,0.15);
 }
 .profile-info {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   line-height: 1.2;
 }
 .profile-name {
   font-weight: 700;
   font-size: 14px;
-  color: #dbe7f7;
+  color: #fff;
 }
 .profile-score {
   font-size: 12px;
@@ -124,36 +145,19 @@ html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,'Helv
   margin-left: 4px;
 }
 
+/* ---- DROPDOWN FIX ---- */
 .dropdown-menu {
   display: none;
   position: absolute;
-  top: 52px;
+  top: 58px;                      /* appears just below profile */
   right: 0;
   background: var(--panel);
   border: 1px solid var(--card-border);
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45);
   width: 240px;
-  z-index: 100;
+  z-index: 5000;                  /* topmost layer */
   animation: fadeIn 0.2s ease;
-}
-.dropdown-header {
-  padding: 10px 14px;
-  font-size: 13px;
-  color: var(--muted);
-}
-.dropdown-score-bar {
-  height: 6px;
-  border-radius: 6px;
-  background: rgba(255,255,255,0.08);
-  margin: 4px 12px 10px;
-  overflow: hidden;
-}
-.dropdown-score-bar div {
-  height: 100%;
-  width: 87%;
-  background: linear-gradient(90deg,#22c55e,#60f7a4);
-  transition: width 0.3s ease;
 }
 .dropdown-menu hr {
   border: none;
@@ -171,6 +175,33 @@ html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,'Helv
   cursor: pointer;
   transition: background 0.2s;
 }
+.dropdown-item:hover {
+  background: rgba(255,255,255,0.08);
+}
+.dropdown-item.logout {
+  color: var(--danger);
+}
+
+.dropdown-header {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.dropdown-score-bar {
+  height: 6px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.08);
+  margin: 4px 12px 10px;
+  overflow: hidden;
+}
+.dropdown-score-bar div {
+  height: 100%;
+  width: 87%;
+  background: linear-gradient(90deg,#22c55e,#60f7a4);
+  transition: width 0.3s ease;
+}
+
 .dropdown-item:hover { background: rgba(255,255,255,0.08); }
 .dropdown-item.logout { color: var(--danger); }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px);} to {opacity:1; transform:translateY(0);} }

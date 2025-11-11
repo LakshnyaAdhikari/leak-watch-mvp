@@ -526,17 +526,23 @@ document.addEventListener('DOMContentLoaded', () => {
   let dropdownOpen = false;
 
   if (profile && dropdown) {
-    profile.addEventListener('click', (e) => {
+    const btn = profile.querySelector('.profile-btn');
+
+    // open / close when clicking on profile area
+    btn.addEventListener('click', (e) => {
       e.stopPropagation();
       dropdownOpen = !dropdownOpen;
       dropdown.style.display = dropdownOpen ? 'block' : 'none';
-      const btn = profile.querySelector('.profile-btn');
-      if (btn) btn.setAttribute('aria-expanded', dropdownOpen ? 'true' : 'false');
+      btn.setAttribute('aria-expanded', dropdownOpen ? 'true' : 'false');
     });
 
-    document.addEventListener('click', () => {
-      dropdown.style.display = 'none';
-      dropdownOpen = false;
+    // close dropdown when clicking outside (ignore inside clicks)
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target) && !profile.contains(e.target)) {
+        dropdown.style.display = 'none';
+        dropdownOpen = false;
+        btn.setAttribute('aria-expanded', 'false');
+      }
     });
   }
 
