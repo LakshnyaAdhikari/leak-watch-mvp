@@ -7,74 +7,57 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="header">
+  <header class="header glass">
     <div class="logo">
-      <div class="dot" aria-hidden="true"></div>
+      <div class="image"><img src="leakwatchlogo.jpg" alt="LeakWatch Logo" width="50px" height="50px" /></div>
       <div class="brand">
         <div class="name">LeakWatch</div>
         <div class="sub">Realtime Data Leak Detection — Local-first</div>
       </div>
     </div>
     <div class="header-right">
-  <div class="status">Status: <span id="connStatus">Connecting...</span></div>
+      <div class="status">Status: <span id="connStatus">Connecting...</span></div>
+      <div class="profile" id="profileDropdown">
+        <div class="profile-btn">
+          <img src="https://i.imgur.com/4Z1Zt5W.png" alt="User Avatar" class="avatar" />
+          <div class="profile-info">
+            <div class="profile-name">Shampy Patel</div>
+            <div class="profile-score">Security Score: <b id="securityScore">87</b>/100</div>
+          </div>
+          <span class="caret">▾</span>
+        </div>
 
-  <!-- Interactive User Profile Dropdown -->
-  <div class="profile" id="profileDropdown">
-    <div class="profile-btn">
-      <img src="https://i.imgur.com/4Z1Zt5W.png" alt="User Avatar" class="avatar" />
-      <div class="profile-info">
-        <div class="profile-name">Alex Patel</div>
-        <div class="profile-score">Security Score: <b id="securityScore">87</b>/100</div>
+        <div class="dropdown-menu" id="dropdownMenu">
+          <div class="dropdown-header">
+            <strong>Alex Patel</strong><br>
+            <small>alex.patel@leakwatch.ai</small>
+          </div>
+          <div class="dropdown-score-bar"><div id="scoreBarFill"></div></div>
+          <hr>
+          <button class="dropdown-item" onclick="openMyAccount()">👤 My Account</button>
+          <button class="dropdown-item" onclick="openSecuritySettings()">🔐 Security Settings</button>
+          <button class="dropdown-item" onclick="openIncidentReports()">📁 Incident Reports</button>
+          <button class="dropdown-item" onclick="downloadReport()">📄 Generate Report</button>
+          <button class="dropdown-item" onclick="openNotifications()">🔔 Notifications</button>
+          <button class="dropdown-item" onclick="openHelp()">❓ Help / Docs</button>
+          <button class="dropdown-item" onclick="openAbout()">ℹ️ About LeakWatch</button>
+          <hr>
+          <button class="dropdown-item logout" onclick="logout()">🚪 Log Out</button>
+        </div>
       </div>
-      <span class="caret">▾</span>
     </div>
-
-    <div class="dropdown-menu" id="dropdownMenu">
-      <div class="dropdown-header">
-        <strong>Alex Patel</strong><br>
-        <small>alex.patel@leakwatch.ai</small>
-      </div>
-      <div class="dropdown-score-bar">
-        <div id="scoreBarFill"></div>
-      </div>
-      <hr>
-      <button class="dropdown-item" onclick="openMyAccount()">👤 My Account</button>
-      <button class="dropdown-item" onclick="openSecuritySettings()">🔐 Security Settings</button>
-      <button class="dropdown-item" onclick="openIncidentReports()">📁 Incident Reports</button>
-      <button class="dropdown-item" onclick="downloadReport()">📄 Generate Report</button>
-      <button class="dropdown-item" onclick="openNotifications()">🔔 Notifications</button>
-      <button class="dropdown-item" onclick="openHelp()">❓ Help / Docs</button>
-      <button class="dropdown-item" onclick="openAbout()">ℹ️ About LeakWatch</button>
-      <hr>
-      <button class="dropdown-item logout" onclick="logout()">🚪 Log Out</button>
-    </div>
-  </div>
-</div>
-
   </header>
 
   <main class="container">
     <!-- LEFT -->
-    <aside class="left panel">
+    <aside class="left panel glass">
       <div class="section">
         <h4>Quick Stats</h4>
         <div class="stat-grid">
-          <div class="stat">
-            <div class="big" id="statTotal">0</div>
-            <div class="small">Total Incidents</div>
-          </div>
-          <div class="stat">
-            <div class="big" id="statBlocked">0</div>
-            <div class="small">Blocked</div>
-          </div>
-          <div class="stat">
-            <div class="big" id="statAllowed">0</div>
-            <div class="small">Allowed</div>
-          </div>
-          <div class="stat">
-            <div class="big" id="statActive">0</div>
-            <div class="small">Active Alerts</div>
-          </div>
+          <div class="stat"><div class="big" id="statTotal">0</div><div class="small">Total Incidents</div></div>
+          <div class="stat"><div class="big" id="statBlocked">0</div><div class="small">Blocked</div></div>
+          <div class="stat"><div class="big" id="statAllowed">0</div><div class="small">Allowed</div></div>
+          <div class="stat"><div class="big" id="statActive">0</div><div class="small">Active Alerts</div></div>
         </div>
       </div>
 
@@ -88,6 +71,11 @@
       </div>
 
       <div class="section">
+        <h4>Frequently Visited Domains</h4>
+        <div id="freqVisited" class="list"></div>
+      </div>
+
+      <div class="section">
         <h4>Risk Distribution</h4>
         <canvas id="riskDonut" width="280" height="150"></canvas>
         <div class="muted small">High / Medium / Low</div>
@@ -96,50 +84,45 @@
 
     <!-- CENTER -->
     <section class="center">
-      <div class="panel">
+      <div class="panel glass">
         <div class="panel-head">
-          <div>
-            <h3>Live Alerts</h3>
-            <div class="muted">Correlated clipboard → outbound events</div>
-          </div>
-
+          <h3>Live Alerts</h3>
           <div class="controls">
             <input id="globalSearch" placeholder="Search domain / page / extension id" />
             <div class="filter-pill" id="filterAll">All</div>
           </div>
         </div>
-
         <div class="filters">
-          <button class="pill" data-filter="all" onclick="setFilter('all')">All</button>
-          <button class="pill" data-filter="high" onclick="setFilter('high')">High</button>
-          <button class="pill" data-filter="med" onclick="setFilter('med')">Medium</button>
-          <button class="pill" data-filter="low" onclick="setFilter('low')">Low</button>
+          <button class="pill" onclick="setFilter('all')">All</button>
+          <button class="pill" onclick="setFilter('high')">High</button>
+          <button class="pill" onclick="setFilter('med')">Medium</button>
+          <button class="pill" onclick="setFilter('low')">Low</button>
         </div>
-
-        <div id="alerts" class="alerts-area" aria-live="polite"></div>
+        <div id="alerts" class="alerts-area empty-state">No active alerts — your system is secure ✅</div>
       </div>
 
-      <div class="panel">
-        <div class="panel-head">
-          <div><h3>Activity Log</h3><div class="muted">Recent events (click a line for details)</div></div>
-        </div>
-        <div id="log" class="log" role="log"></div>
+      <div class="panel glass">
+        <div class="panel-head"><h3>Activity Log</h3></div>
+        <div id="log" class="log"></div>
       </div>
     </section>
 
     <!-- RIGHT -->
-    <aside class="right panel">
+    <aside class="right panel glass">
       <div class="section">
         <h4>Weekly Trend</h4>
         <canvas id="weeklyChart" width="320" height="140"></canvas>
         <div class="muted small">Last 7 days</div>
       </div>
-
+      <div class="section">
+        <h4>Action Breakdown</h4>
+        <canvas id="actionChart" width="320" height="140"></canvas>
+        <div class="muted small">Copy / Paste / Login / Block Events</div>
+      </div>
       <div class="section">
         <h4>Recent Block Attempts</h4>
         <div id="blockedAttempts" class="list"></div>
       </div>
-
       <div class="section">
         <h4>Top Destinations</h4>
         <div id="topDest" class="list"></div>
@@ -147,8 +130,9 @@
     </aside>
   </main>
 
-  <!-- Modal -->
-  <div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div id="toast" class="toast"></div>
+
+  <div id="modalBackdrop" class="modal-backdrop">
     <div class="modal">
       <h3 id="modalTitle">Alert details</h3>
       <div id="modalBody" class="modal-body"></div>
@@ -156,7 +140,7 @@
         <button class="btn ghost" onclick="closeModal()">Close</button>
         <button id="modalAllow" class="btn">Allow</button>
         <button id="modalBlock" class="btn warn">Block Domain</button>
-        <button id="modalBlockExt" class="btn" onclick="modalBlockExtension()">Block Extension</button>
+        <button id="modalBlockExt" class="btn">Block Extension</button>
       </div>
     </div>
   </div>
